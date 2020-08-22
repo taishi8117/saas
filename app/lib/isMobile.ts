@@ -11,7 +11,7 @@ export function isMobile(opts: any) {
   }
   if (!ua && opts.req && opts.req.headers && typeof opts.req.headers['user-agent'] === 'string') {
     ua = opts.req.headers['user-agent'];
-    console.log(ua);
+    // console.log(ua);
   }
 
   if (typeof ua !== 'string') {

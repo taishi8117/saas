@@ -9,7 +9,21 @@ import NProgress from 'nprogress';
 import confirm from '../lib/confirm';
 import notify from '../lib/notify';
 
-class Index extends React.Component {
+import { getUser } from '../lib/api/public';
+
+type Props = { user: { email: string } };
+
+class Index extends React.Component<Props> {
+  public static async getInitialProps(ctx) {
+    const { req } = ctx;
+
+    const user = await getUser(req);
+
+    console.log(user);
+
+    return { ...user };
+  }
+
   public render() {
     return (
       <Layout {...this.props}>
@@ -51,6 +65,7 @@ class Index extends React.Component {
           >
             Test Confirmer and Notifier
           </Button>
+          <p>Email: {this.props.user.email}</p>
         </div>
       </Layout>
     );
