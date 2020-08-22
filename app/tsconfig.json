@@ -32,7 +32,7 @@
   "include": [
     "next-env.d.ts",
     "./**/*.tsx",
-    "./**/*.ts"
+    "./**/*.ts", "pages/index.tsx.bak"
   ],
   "exclude": [
     "dist",

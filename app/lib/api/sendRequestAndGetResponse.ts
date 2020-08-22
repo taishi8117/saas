@@ -14,9 +14,10 @@ export default async function sendRequestAndGetResponse(path: string, opts: any 
 
   const fullUrl = `${process.env.URL_API}${path}${qs}`;
 
+  console.log(`send request: ${fullUrl}`);
   const response = await fetch(
     fullUrl,
-    // Object.assign({ method: 'POST', credentials: 'include' }, opts, { headers }),
+    Object.assign({ method: 'POST', credentials: 'include' }, opts, { headers }),
   );
 
   const text = await response.text();
