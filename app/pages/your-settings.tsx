@@ -8,6 +8,12 @@ import * as React from 'react';
 import Layout from '../components/layout';
 
 import { getUserBySlugApiMethod, updateProfileApiMethod } from '../lib/api/public';
+import {
+  getSignedRequestForUploadApiMethod,
+  uploadFileUsingSignedPutRequestApiMethod,
+} from '../lib/api/team-member';
+
+import { resizeImage } from '../lib/resizeImage';
 
 import notify from '../lib/notify';
 
@@ -125,8 +131,6 @@ class YourSettings extends React.Component<Props, State> {
 
     const { newName, newAvatarUrl } = this.state;
 
-    // const { newName, newAvatarUrl } = this.state;
-
     if (!newName) {
       notify('Name is required');
       return;
@@ -147,7 +151,63 @@ class YourSettings extends React.Component<Props, State> {
   };
 
   private uploadFile = async () => {
-    // to be defined
+    const fileElement = document.getElementById('upload-file') as HTMLFormElement;
+    const file = fileElement.files[0];
+
+    if (file == null) {
+      notify('No file selected for upload.');
+      return;
+    }
+
+    const fileName = file.name;
+    const fileType = file.type;
+
+    NProgress.start();
+    this.setState({ disabled: true });
+
+    const bucket = process.env.BUCKET_FOR_AVATARS;
+
+    const prefix = 'team-builder-book';
+
+    try {
+      // call getSignedRequestForUploadApiMethod
+      const responseFromApiServerForUpload = await getSignedRequestForUploadApiMethod({
+        fileName,
+        fileType,
+        prefix,
+        bucket,
+      });
+
+      const resizedFile = await resizeImage(file, 128, 128);
+      console.log('> uploadFile', file);
+      console.log('> resizedFile', resizedFile);
+
+      // call uploadFileUsingSignedPutRequestApiMethod
+      await uploadFileUsingSignedPutRequestApiMethod(
+        resizedFile,
+        responseFromApiServerForUpload.signedRequest,
+        { 'Cache-Control': 'max-age=2592000' },
+      );
+
+      // call updateProfileApiMethod
+      this.setState({
+        newAvatarUrl: responseFromApiServerForUpload.url,
+      });
+
+      await updateProfileApiMethod({
+        name: this.state.newName,
+        avatarUrl: this.state.newAvatarUrl,
+      });
+
+      notify('You successfully uploaded new avatar.');
+    } catch (error) {
+      console.log(`Error while uploadFile: ${error}`);
+      notify(error);
+    } finally {
+      fileElement.value = '';
+      this.setState({ disabled: false });
+      NProgress.done();
+    }
   };
 }
 

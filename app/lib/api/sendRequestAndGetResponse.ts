@@ -1,9 +1,15 @@
 import 'isomorphic-unfetch';
 
 export default async function sendRequestAndGetResponse(path: string, opts: any = {}) {
-  const headers = Object.assign({}, opts.headers || {}, {
-    'Content-type': 'application/json; charset=UTF-8',
-  });
+  const headers = Object.assign(
+    {},
+    opts.headers || {},
+    opts.externalServer
+      ? {}
+      : {
+          'Content-type': 'application/json; charset=UTF-8',
+        },
+  );
 
   const { request } = opts;
   if (request && request.headers && request.headers.cookie) {
@@ -12,7 +18,7 @@ export default async function sendRequestAndGetResponse(path: string, opts: any 
 
   const qs = opts.qs || '';
 
-  const fullUrl = `${process.env.URL_API}${path}${qs}`;
+  const fullUrl = opts.externalServer ? `${path}${qs}` : `${process.env.URL_API}${path}${qs}`;
 
   console.log(`send request: ${fullUrl}`);
   const response = await fetch(
@@ -23,6 +29,7 @@ export default async function sendRequestAndGetResponse(path: string, opts: any 
   const text = await response.text();
 
   if (response.status >= 400) {
+    console.log(`Response status >=400 to ${path}`);
     throw new Error(response.status.toString());
   }
 
@@ -35,6 +42,7 @@ export default async function sendRequestAndGetResponse(path: string, opts: any 
       return text;
     }
 
+    console.log(`Error while sendRequest to ${path}: ${err}`);
     throw err;
   }
 }
