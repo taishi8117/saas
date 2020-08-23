@@ -4,12 +4,14 @@ import User from '../models/User';
 
 const router = express.Router();
 
-// router.get('/get-user', (req, res) => {
-//   res.json({ user: req.user || null });
-// });
+router.get('/get-user', (req, res) => {
+  console.log('/get-user >', req.user);
+  res.json({ user: req.user || null });
+});
 
 router.post('/get-user-by-slug', async (req, res, next) => {
   console.log('Express route: /get-user-slug');
+
   try {
     const { slug } = req.body;
 
@@ -26,12 +28,8 @@ router.post('/user/update-profile', async (req, res, next) => {
   try {
     const { name, avatarUrl } = req.body;
 
-    // define userId
-
-    const userId = '5f413cddad0fe047318f8d02';
-
     const updatedUser = await User.updateProfile({
-      userId: userId,
+      userId: req.user.id,
       name,
       avatarUrl,
     });
