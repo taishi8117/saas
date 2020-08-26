@@ -79,6 +79,11 @@ function setupGoogle({ server }) {
       res.redirect(`${process.env.URL_APP}/your-settings`);
     },
   );
+
+  server.get('/logout', (req, res) => {
+    req.logout();
+    res.redirect(`${process.env.URL_APP}/login`);
+  });
 }
 
 export { setupGoogle };
