@@ -1,6 +1,9 @@
 import * as _ from 'lodash';
 import * as mongoose from 'mongoose';
+
+import sendEmail from '../aws-ses';
 import { generateSlug } from '../utils/slugify';
+import getEmailTemplate from './EmailTemplate';
 
 mongoose.set('useFindAndModify', false);
 
@@ -144,6 +147,23 @@ class UserClass extends mongoose.Model {
       slug,
       isSignedupViaGoogle: true,
     });
+
+    const emailTemplate = await getEmailTemplate('welcome', { userName: displayName });
+
+    if (!emailTemplate) {
+      throw new Error('Welcome email template not found');
+    }
+
+    try {
+      await sendEmail({
+        from: `Kelly from saas-app.builderbook.org <${process.env.EMAIL_SUPPORT_FROM_ADDRESS}>`,
+        to: [email],
+        subject: emailTemplate.subject,
+        body: emailTemplate.message,
+      });
+    } catch (err) {
+      console.error('Email sending error:', err);
+    }
 
     return _.pick(newUser, this.publicFields());
   }
