@@ -39,6 +39,7 @@ const mongoSchema = new mongoose.Schema({
     required: true,
     default: false,
   },
+  darkTheme: Boolean,
 });
 
 export interface UserDocument extends mongoose.Document {
@@ -50,6 +51,7 @@ export interface UserDocument extends mongoose.Document {
   googleId: string;
   googleToken: { accessToken: string; refreshToken: string };
   isSignedupViaGoogle: boolean;
+  darkTheme: boolean;
 }
 
 interface UserModel extends mongoose.Model<UserDocument> {
@@ -80,6 +82,16 @@ interface UserModel extends mongoose.Model<UserDocument> {
     avatarUrl: string;
     googleToken: { accessToken?: string; refreshToken?: string };
   }): Promise<UserDocument>;
+
+  signInOrSignUpByPasswordless({
+    uid,
+    email,
+  }: {
+    uid: string;
+    email: string;
+  }): Promise<UserDocument>;
+
+  toggleTheme({ userId, darkTheme }: { userId: string; darkTheme: boolean }): Promise<void>;
 }
 
 class UserClass extends mongoose.Model {
@@ -103,7 +115,16 @@ class UserClass extends mongoose.Model {
   }
 
   public static publicFields(): string[] {
-    return ['_id', 'id', 'displayName', 'email', 'avatarUrl', 'slug', 'isSignedupViaGoogle'];
+    return [
+      '_id',
+      'id',
+      'displayName',
+      'email',
+      'avatarUrl',
+      'slug',
+      'isSignedupViaGoogle',
+      'darkTheme',
+    ];
   }
 
   public static async signInOrSignUpViaGoogle({
@@ -217,6 +238,10 @@ class UserClass extends mongoose.Model {
     }
 
     return _.pick(newUser, this.publicFields());
+  }
+
+  public static toggleTheme({ userId, darkTheme }) {
+    return this.updateOne({ _id: userId }, { darkTheme: !!darkTheme });
   }
 }
 

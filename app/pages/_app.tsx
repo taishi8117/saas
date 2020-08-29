@@ -77,8 +77,7 @@ class MyApp extends App<{ isMobile: boolean }> {
 
     return (
       <ThemeProvider
-        // theme={store.currentUser && store.currentUser.darkTheme ? themeDark : themeLight}
-        theme={false ? themeDark : themeLight}
+        theme={store.currentUser && store.currentUser.darkTheme ? themeDark : themeLight}
       >
         <CssBaseline />
         <Provider store={store}>

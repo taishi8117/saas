@@ -1,6 +1,6 @@
 import { action, decorate, observable, runInAction } from 'mobx';
 
-import { updateProfileApiMethod } from '../api/team-member';
+import { updateProfileApiMethod, toggleThemeApiMethod } from '../api/team-member';
 import { Store } from './index';
 
 class User {
@@ -13,6 +13,8 @@ class User {
   public avatarUrl: string | null;
   public isSignedupViaGoogle: boolean;
 
+  public darkTheme = false;
+
   constructor(params) {
     this.store = params.store;
     this._id = params._id;
@@ -21,6 +23,7 @@ class User {
     this.displayName = params.displayName;
     this.avatarUrl = params.avatarUrl;
     this.isSignedupViaGoogle = !!params.isSignedupViaGoogle;
+    this.darkTheme = !!params.darkTheme;
   }
 
   public async updateProfile({ name, avatarUrl }: { name: string; avatarUrl: string }) {
@@ -35,6 +38,15 @@ class User {
       this.slug = updatedUser.slug;
     });
   }
+
+  public async toggleTheme(darkTheme: boolean) {
+    await toggleThemeApiMethod({ darkTheme });
+    console.log('user.toggleTheme to darkTheme: ', darkTheme);
+    runInAction(() => {
+      this.darkTheme = darkTheme;
+    });
+    window.location.reload();
+  }
 }
 
 decorate(User, {
@@ -42,8 +54,10 @@ decorate(User, {
   email: observable,
   displayName: observable,
   avatarUrl: observable,
+  darkTheme: observable,
 
   updateProfile: action,
+  toggleTheme: action,
 });
 
 export { User };
