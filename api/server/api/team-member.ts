@@ -1,5 +1,6 @@
 import * as express from 'express';
 
+import User from '../models/User';
 import { signRequestForUpload } from '../aws-s3';
 
 const router = express.Router();
@@ -26,6 +27,23 @@ router.post('/aws/get-signed-request-for-upload-to-s3', async (req, res, next) =
     });
 
     res.json(returnData);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/user/update-profile', async (req, res, next) => {
+  console.log('Express route: /user/update-profile');
+  try {
+    const { name, avatarUrl } = req.body;
+
+    const updatedUser = await User.updateProfile({
+      userId: req.user.id,
+      name,
+      avatarUrl,
+    });
+
+    res.json({ updatedUser });
   } catch (err) {
     next(err);
   }

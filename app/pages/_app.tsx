@@ -1,9 +1,13 @@
 import CssBaseline from '@material-ui/core/CssBaseline';
 import { ThemeProvider } from '@material-ui/styles';
+import { Provider } from 'mobx-react';
 import App from 'next/app';
 import React from 'react';
-import { isMobile } from '../lib/isMobile';
+
 import { themeDark, themeLight } from '../lib/theme';
+import { getUserApiMethod } from '../lib/api/public';
+import { isMobile } from '../lib/isMobile';
+import { getStore, initializeStore, Store } from '../lib/store';
 
 class MyApp extends App<{ isMobile: boolean }> {
   public static async getInitialProps({ Component, ctx }) {
@@ -19,7 +23,32 @@ class MyApp extends App<{ isMobile: boolean }> {
       Object.assign(pageProps, await Component.getInitialProps(ctx));
     }
 
-    return { pageProps };
+    const appProps = { pageProps };
+
+    // if store already exists, simply return the page component's props
+    if (getStore()) {
+      return appProps;
+    }
+
+    const { req } = ctx;
+
+    const headers: any = {};
+    if (req.headers && req.headers.cookie) {
+      headers.cookie = req.headers.cookie;
+    }
+
+    let userObj = null;
+    try {
+      const { user } = await getUserApiMethod({ headers });
+      userObj = user;
+    } catch (error) {
+      console.log('Error in MyApp.getInitialProps:', error);
+    }
+
+    return {
+      ...appProps,
+      initialState: { user: userObj, currentUrl: ctx.asPath },
+    };
   }
 
   public componentDidMount() {
@@ -30,13 +59,31 @@ class MyApp extends App<{ isMobile: boolean }> {
     }
   }
 
+  private store: Store;
+
+  constructor(props) {
+    console.log('MyApp.constructor');
+
+    super(props);
+
+    this.store = initializeStore(props.initialState);
+  }
+
   public render() {
     const { Component, pageProps } = this.props;
+    const store = this.store;
+
+    console.log('MyApp.render currentUser: ', store.currentUser);
 
     return (
-      <ThemeProvider theme={false ? themeDark : themeLight}>
+      <ThemeProvider
+        // theme={store.currentUser && store.currentUser.darkTheme ? themeDark : themeLight}
+        theme={false ? themeDark : themeLight}
+      >
         <CssBaseline />
-        <Component {...pageProps} />
+        <Provider store={store}>
+          <Component {...pageProps} store={store} />
+        </Provider>
       </ThemeProvider>
     );
   }
