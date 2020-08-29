@@ -75,8 +75,16 @@ function setupGoogle({ server }) {
     passport.authenticate('google', {
       failureRedirect: '/login',
     }),
-    (_, res) => {
-      res.redirect(`${process.env.URL_APP}/your-settings`);
+    (req, res) => {
+      let redirectUrlAfterLogin;
+
+      if (req.user && !req.user.defaultTeamSlug) {
+        redirectUrlAfterLogin = '/create-team';
+      } else {
+        redirectUrlAfterLogin = '/your-settings';
+      }
+      console.log('Successful login with Google, redirecting to ', redirectUrlAfterLogin);
+      res.redirect(`${process.env.URL_APP}${redirectUrlAfterLogin}`);
     },
   );
 

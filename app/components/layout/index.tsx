@@ -1,10 +1,14 @@
 import Avatar from '@material-ui/core/Avatar';
+import Button from '@material-ui/core/Button';
 import Grid from '@material-ui/core/Grid';
+
+import Link from 'next/link';
 import React from 'react';
 
-import Confirmer from '../common/Confirmer';
 import MenuWithLinks from '../common/MenuWithLinks';
+import Confirmer from '../common/Confirmer';
 import Notifier from '../common/Notifier';
+
 import { Store } from '../../lib/store';
 
 const styleGrid = {
@@ -21,24 +25,21 @@ const styleGridIsMobile = {
   padding: '0px 0px 0px 10px',
 };
 
-type Props = {
-  firstGridItem?: boolean;
+function LayoutWrapper({
+  children,
+  isMobile,
+  firstGridItem,
+  store,
+  isThemeDark,
+}: {
   children: React.ReactNode;
-  isMobile?: boolean;
-  store?: Store;
-};
-
-class Layout extends React.Component<Props> {
-  public render() {
-    const { firstGridItem, children, isMobile, store } = this.props;
-
-    const { currentUser } = store;
-
-    const isThemeDark = currentUser && currentUser.darkTheme === true;
-
-    console.log('isDarkTheme: ', this.props.store.currentUser.darkTheme);
-
-    return (
+  isMobile: boolean;
+  firstGridItem: boolean;
+  store: Store;
+  isThemeDark: boolean;
+}) {
+  return (
+    <React.Fragment>
       <Grid
         container
         direction="row"
@@ -55,7 +56,7 @@ class Layout extends React.Component<Props> {
               borderRight: '1px #707070 solid',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', margin: '0px 10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="124"
@@ -88,9 +89,16 @@ class Layout extends React.Component<Props> {
               <MenuWithLinks
                 options={[
                   {
-                    text: 'Index page',
-                    href: '/',
-                    highlighterSlug: '/',
+                    text: 'Team Settings',
+                    href: `/team-settings?teamSlug=${store.currentTeam.slug}`,
+                    as: `/team/${store.currentTeam.slug}/team-settings`,
+                    simple: true,
+                  },
+                  {
+                    text: 'Billing',
+                    href: `/billing?teamSlug=${store.currentTeam.slug}`,
+                    as: `/team/${store.currentTeam.slug}/billing`,
+                    simple: true,
                   },
                   {
                     text: 'Your Settings',
@@ -130,9 +138,94 @@ class Layout extends React.Component<Props> {
             <p />
           </Grid>
         ) : null}
+
+        {children}
+      </Grid>
+      <Notifier />
+      <Confirmer />
+    </React.Fragment>
+  );
+}
+
+type Props = {
+  firstGridItem?: boolean;
+  children: React.ReactNode;
+  isMobile?: boolean;
+  store?: Store;
+  teamRequired?: boolean;
+};
+
+class Layout extends React.Component<Props> {
+  public render() {
+    const { firstGridItem, children, isMobile, store, teamRequired } = this.props;
+
+    const { currentUser, currentTeam } = store;
+
+    const isThemeDark = currentUser && currentUser.darkTheme === true;
+
+    if (!currentUser) {
+      return (
+        <LayoutWrapper
+          firstGridItem={firstGridItem}
+          isMobile={isMobile}
+          isThemeDark={isThemeDark}
+          store={store}
+        >
+          <Grid item sm={12} xs={12}>
+            {children}
+          </Grid>
+        </LayoutWrapper>
+      );
+    }
+
+    if (!currentTeam) {
+      if (teamRequired) {
+        return (
+          <LayoutWrapper
+            firstGridItem={firstGridItem}
+            isMobile={isMobile}
+            isThemeDark={isThemeDark}
+            store={store}
+          >
+            <Grid item sm={10} xs={12}>
+              <div style={{ padding: '20px' }}>
+                Select existing team or create a new team.
+                <p />
+                <Link href="/create-team">
+                  <Button variant="outlined" color="primary">
+                    Create new team
+                  </Button>
+                </Link>
+              </div>
+            </Grid>
+          </LayoutWrapper>
+        );
+      } else {
+        return (
+          <LayoutWrapper
+            firstGridItem={firstGridItem}
+            isMobile={isMobile}
+            isThemeDark={isThemeDark}
+            store={store}
+          >
+            <Grid item sm={10} xs={12}>
+              {children}
+            </Grid>
+          </LayoutWrapper>
+        );
+      }
+    }
+
+    return (
+      <LayoutWrapper
+        firstGridItem={firstGridItem}
+        isMobile={isMobile}
+        isThemeDark={isThemeDark}
+        store={store}
+      >
         <Grid item sm={firstGridItem ? 10 : 12} xs={12}>
           <div>
-            {isMobile ? null : (
+            {isMobile || store.currentUrl.includes('create-team') ? null : (
               <React.Fragment>
                 <i
                   style={{
@@ -156,9 +249,7 @@ class Layout extends React.Component<Props> {
           </div>
           {children}
         </Grid>
-        <Notifier />
-        <Confirmer />
-      </Grid>
+      </LayoutWrapper>
     );
   }
 }

@@ -5,6 +5,7 @@ import sendEmail from '../aws-ses';
 import { addToMailchimp } from '../mailchimp';
 import { generateSlug } from '../utils/slugify';
 import getEmailTemplate from './EmailTemplate';
+import Team, { TeamDocument } from './Team';
 
 mongoose.set('useFindAndModify', false);
 
@@ -40,6 +41,10 @@ const mongoSchema = new mongoose.Schema({
     default: false,
   },
   darkTheme: Boolean,
+  defaultTeamSlug: {
+    type: String,
+    default: '',
+  },
 });
 
 export interface UserDocument extends mongoose.Document {
@@ -52,6 +57,7 @@ export interface UserDocument extends mongoose.Document {
   googleToken: { accessToken: string; refreshToken: string };
   isSignedupViaGoogle: boolean;
   darkTheme: boolean;
+  defaultTeamSlug: string;
 }
 
 interface UserModel extends mongoose.Model<UserDocument> {
@@ -92,6 +98,22 @@ interface UserModel extends mongoose.Model<UserDocument> {
   }): Promise<UserDocument>;
 
   toggleTheme({ userId, darkTheme }: { userId: string; darkTheme: boolean }): Promise<void>;
+
+  getMembersForTeam({
+    userId,
+    teamId,
+  }: {
+    userId: string;
+    teamId: string;
+  }): Promise<UserDocument[]>;
+
+  checkPermissionAndGetTeam({
+    userId,
+    teamId,
+  }: {
+    userId: string;
+    teamId: string;
+  }): Promise<TeamDocument>;
 }
 
 class UserClass extends mongoose.Model {
@@ -124,6 +146,7 @@ class UserClass extends mongoose.Model {
       'slug',
       'isSignedupViaGoogle',
       'darkTheme',
+      'defaultTeamSlug',
     ];
   }
 
@@ -168,6 +191,7 @@ class UserClass extends mongoose.Model {
       avatarUrl,
       slug,
       isSignedupViaGoogle: true,
+      defaultTeamSlug: '',
     });
 
     const emailTemplate = await getEmailTemplate('welcome', { userName: displayName });
@@ -212,6 +236,7 @@ class UserClass extends mongoose.Model {
       createdAt: new Date(),
       email,
       slug,
+      defaultTeamSlug: '',
     });
 
     const emailTemplate = await getEmailTemplate('welcome', { userName: email });
@@ -242,6 +267,29 @@ class UserClass extends mongoose.Model {
 
   public static toggleTheme({ userId, darkTheme }) {
     return this.updateOne({ _id: userId }, { darkTheme: !!darkTheme });
+  }
+
+  public static async getMembersForTeam({ userId, teamId }) {
+    const team = await this.checkPermissionAndGetTeam({ userId, teamId });
+    return this.find({ _id: { $in: team.memberIds } })
+      .select(this.publicFields().join(' '))
+      .setOptions({ lean: true });
+  }
+
+  private static async checkPermissionAndGetTeam({ userId, teamId }) {
+    if (!userId || !teamId) {
+      throw new Error('Bad data');
+    }
+
+    const team = await Team.findById(teamId)
+      .select('memberIds')
+      .setOptions({ lean: true });
+
+    if (!team || team.memberIds.indexOf(userId.toString()) === -1) {
+      throw new Error('Team not found');
+    }
+
+    return team;
   }
 }
 

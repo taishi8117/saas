@@ -24,3 +24,25 @@ export const toggleThemeApiMethod = (data) =>
   sendRequestAndGetResponse(`${BASE_PATH}/user/toggle-theme`, {
     body: JSON.stringify(data),
   });
+
+export const getInitialDataApiMethod = (options: any = {}) =>
+  sendRequestAndGetResponse(
+    `${BASE_PATH}/get-initial-data`,
+    Object.assign(
+      {
+        body: JSON.stringify(options.data || {}),
+      },
+      options,
+    ),
+  );
+
+export const getTeamListApiMethod = () =>
+  sendRequestAndGetResponse(`${BASE_PATH}/teams`, {
+    method: 'GET',
+  });
+
+export const getTeamMembersApiMethod = (teamId: string) =>
+  sendRequestAndGetResponse(`${BASE_PATH}/teams/get-members`, {
+    method: 'GET',
+    qs: { teamId },
+  });

@@ -16,6 +16,11 @@ app.prepare().then(() => {
 
   server.use(express.json());
 
+  server.get('/team/:teamSlug/team-settings', (req, res) => {
+    const { teamSlug } = req.params;
+    app.render(req, res, '/team-settings', { teamSlug });
+  });
+
   server.all('*', (req, res) => {
     handle(req, res);
   });

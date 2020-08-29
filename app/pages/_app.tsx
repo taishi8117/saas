@@ -6,18 +6,36 @@ import React from 'react';
 
 import { themeDark, themeLight } from '../lib/theme';
 import { getUserApiMethod } from '../lib/api/public';
+import { getInitialDataApiMethod } from '../lib/api/team-member';
 import { isMobile } from '../lib/isMobile';
 import { getStore, initializeStore, Store } from '../lib/store';
 
 class MyApp extends App<{ isMobile: boolean }> {
   public static async getInitialProps({ Component, ctx }) {
     let firstGridItem = true;
+    let teamRequired = false;
 
-    if (ctx.pathname.includes('/login')) {
+    if (ctx.pathname.includes('/login') || ctx.pathname.includes('/create-team')) {
       firstGridItem = false;
     }
 
-    const pageProps = { isMobile: isMobile({ req: ctx.req }), firstGridItem: firstGridItem };
+    if (
+      ctx.pathname.includes('/team-settings') ||
+      ctx.pathname.includes('/discussion') ||
+      ctx.pathname.includes('/billing')
+    ) {
+      teamRequired = true;
+    }
+
+    const { teamSlug } = ctx.query;
+    console.log(`ctx.query.teamSlug:${teamSlug}`);
+
+    const pageProps = {
+      isMobile: isMobile({ req: ctx.req }),
+      firstGridItem: firstGridItem,
+      teamSlug,
+      teamRequired,
+    };
 
     if (Component.getInitialProps) {
       Object.assign(pageProps, await Component.getInitialProps(ctx));
@@ -26,7 +44,8 @@ class MyApp extends App<{ isMobile: boolean }> {
     const appProps = { pageProps };
 
     // if store already exists, simply return the page component's props
-    if (getStore()) {
+    const store = getStore();
+    if (store) {
       return appProps;
     }
 
@@ -45,9 +64,21 @@ class MyApp extends App<{ isMobile: boolean }> {
       console.log('Error in MyApp.getInitialProps:', error);
     }
 
+    let initialData = {};
+    if (userObj) {
+      try {
+        initialData = await getInitialDataApiMethod({
+          request: ctx.req,
+          data: { teamSlug },
+        });
+      } catch (error) {
+        console.error('Error in getInitialDataApiMethod: ', error);
+      }
+    }
+
     return {
       ...appProps,
-      initialState: { user: userObj, currentUrl: ctx.asPath },
+      initialState: { user: userObj, currentUrl: ctx.asPath, teamSlug, ...initialData },
     };
   }
 

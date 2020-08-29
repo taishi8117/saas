@@ -49,8 +49,13 @@ export default function withAuth(Component, { loginRequired = true, logoutRequir
       let redirectUrl = '/login';
       let asUrl = '/login';
       if (user) {
-        redirectUrl = `/your-settings`;
-        asUrl = `/your-settings`;
+        if (!user.defaultTeamSlug) {
+          redirectUrl = '/create-team';
+          asUrl = '/create-team';
+        } else {
+          redirectUrl = `/your-settings`;
+          asUrl = `/your-settings`;
+        }
       }
 
       if (logoutRequired && user) {
