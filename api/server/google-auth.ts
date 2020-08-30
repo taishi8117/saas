@@ -97,7 +97,7 @@ function setupGoogle({ server }) {
       if (req.user && !req.user.defaultTeamSlug) {
         redirectUrlAfterLogin = '/create-team';
       } else {
-        redirectUrlAfterLogin = '/your-settings';
+        redirectUrlAfterLogin = `/team/${req.user.defaultTeamSlug}/discussions`;
       }
       console.log('Successful login with Google, redirecting to ', redirectUrlAfterLogin);
       res.redirect(`${process.env.URL_APP}${redirectUrlAfterLogin}`);

@@ -39,6 +39,7 @@ class MyApp extends App<{ isMobile: boolean }> {
       teamSlug,
       teamRequired,
       redirectMessage,
+      discussionSlug,
     };
 
     if (Component.getInitialProps) {
