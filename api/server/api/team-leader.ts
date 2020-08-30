@@ -1,7 +1,7 @@
 import * as express from 'express';
 
 import Team from '../models/Team';
-// import User from '../models/User';
+import Invitation from '../models/Invitation';
 
 const router = express.Router();
 

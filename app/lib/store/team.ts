@@ -1,5 +1,9 @@
 import { action, decorate, IObservableArray, observable, runInAction } from 'mobx';
-import { updateTeamApiMethod } from '../api/team-leader';
+import {
+  updateTeamApiMethod,
+  inviteMemberApiMethod,
+  removeMemberApiMethod,
+} from '../api/team-leader';
 import { Store } from './index';
 import { User } from './user';
 import { Invitation } from './invitation';
@@ -28,7 +32,7 @@ class Team {
     this.store = params.store;
 
     if (params.initialMembers) {
-      this.setInitialMembers(params.initialMembers);
+      this.setInitialMembersAndInvitations(params.initialMembers, params.initialInvitations);
     }
   }
 
@@ -104,7 +108,7 @@ decorate(Team, {
   members: observable,
   invitations: observable,
 
-  setInitialMembers: action,
+  setInitialMembersAndInvitations: action,
   updateTeam: action,
   inviteMember: action,
   removeMember: action,

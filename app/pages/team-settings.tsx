@@ -163,50 +163,52 @@ class TeamSettings extends React.Component<Props, State> {
               </TableHead>
 
               <TableBody>
-                {Array.from(currentTeam.members.values()).map((m) => (
-                  <TableRow key={m._id}>
-                    <TableCell style={{ width: '300px' }}>
-                      <Hidden smDown>
-                        <Avatar
-                          role="presentation"
-                          src={m.avatarUrl}
-                          alt={(m.displayName || m.email)[0]}
-                          key={m._id}
-                          style={{
-                            margin: '0px 5px',
-                            display: 'inline-flex',
-                            width: '30px',
-                            height: '30px',
-                            verticalAlign: 'middle',
-                          }}
-                        />
-                      </Hidden>
-                      {m.email}
-                    </TableCell>
-                    <TableCell>
-                      {isTeamLeader && m._id !== currentUser._id ? 'Team Member' : 'Team Leader'}
-                    </TableCell>
-                    <TableCell>
-                      {isTeamLeader && m._id !== currentUser._id ? (
-                        <i
-                          color="action"
-                          data-id={m._id}
-                          onClick={this.removeMember}
-                          style={{
-                            marginLeft: '20px',
-                            fontSize: '16px',
-                            opacity: 0.6,
-                            cursor: 'pointer',
-                            verticalAlign: 'middle',
-                          }}
-                          className="material-icons"
-                        >
-                          delete
-                        </i>
-                      ) : null}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {currentTeam.memberIds
+                  .map((userId) => currentTeam.members.get(userId))
+                  .map((m) => (
+                    <TableRow key={m._id}>
+                      <TableCell style={{ width: '300px' }}>
+                        <Hidden smDown>
+                          <Avatar
+                            role="presentation"
+                            src={m.avatarUrl}
+                            alt={(m.displayName || m.email)[0]}
+                            key={m._id}
+                            style={{
+                              margin: '0px 5px',
+                              display: 'inline-flex',
+                              width: '30px',
+                              height: '30px',
+                              verticalAlign: 'middle',
+                            }}
+                          />
+                        </Hidden>
+                        {m.email}
+                      </TableCell>
+                      <TableCell>
+                        {isTeamLeader && m._id !== currentUser._id ? 'Team Member' : 'Team Leader'}
+                      </TableCell>
+                      <TableCell>
+                        {isTeamLeader && m._id !== currentUser._id ? (
+                          <i
+                            color="action"
+                            data-id={m._id}
+                            onClick={this.removeMember}
+                            style={{
+                              marginLeft: '20px',
+                              fontSize: '16px',
+                              opacity: 0.6,
+                              cursor: 'pointer',
+                              verticalAlign: 'middle',
+                            }}
+                            className="material-icons"
+                          >
+                            delete
+                          </i>
+                        ) : null}
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </TableContainer>

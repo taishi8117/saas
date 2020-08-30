@@ -11,7 +11,7 @@ import {
   acceptAndGetInvitedTeamByTokenApiMethod,
   removeInvitationIfMemberAddedApiMethod,
 } from '../lib/api/public';
-import notify from '../lib/notify';
+// import notify from '../lib/notify';
 import { Team } from '../lib/store/team';
 import { Store } from '../lib/store';
 import withAuth from '../lib/withAuth';
