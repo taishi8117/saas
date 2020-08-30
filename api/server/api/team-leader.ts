@@ -45,8 +45,41 @@ router.post('/teams/update', async (req, res, next) => {
   }
 });
 
-// router.get('/teams/get-invited-users', async (req: any, res, next) => {
-//   // defined later in this chapter
-// });
+router.get('/teams/get-invitations-for-team', async (req: any, res, next) => {
+  try {
+    const users = await Invitation.getTeamInvitations({
+      userId: req.user.id,
+      teamId: req.query.teamId,
+    });
+
+    res.json({ users });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/teams/invite-member', async (req: any, res, next) => {
+  try {
+    const { teamId, email } = req.body;
+
+    const newInvitation = await Invitation.add({ userId: req.user.id, teamId, email });
+
+    res.json({ newInvitation });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/teams/remove-member', async (req: any, res, next) => {
+  try {
+    const { teamId, userId } = req.body;
+
+    await Team.removeMember({ teamLeaderId: req.user.id, teamId, userId });
+
+    res.json({ done: 1 });
+  } catch (err) {
+    next(err);
+  }
+});
 
 export default router;

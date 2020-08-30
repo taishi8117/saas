@@ -2,6 +2,7 @@ import * as passport from 'passport';
 import { OAuth2Strategy as Strategy } from 'passport-google-oauth';
 
 import User, { UserDocument } from './models/User';
+import Invitation from './models/Invitation';
 
 function setupGoogle({ server }) {
   if (!process.env.GOOGLE_CLIENTID) {
@@ -67,6 +68,12 @@ function setupGoogle({ server }) {
       prompt: 'select_account',
     };
 
+    if (req.query && req.query.invitationToken) {
+      req.session.invitationToken = req.query.invitationToken;
+    } else {
+      req.session.invitationToken = null;
+    }
+
     passport.authenticate('google', options)(req, res, next);
   });
 
@@ -76,6 +83,15 @@ function setupGoogle({ server }) {
       failureRedirect: '/login',
     }),
     (req, res) => {
+      if (req.user && req.session.invitationToken) {
+        Invitation.addUserToTeam({
+          token: req.session.invitationToken,
+          user: req.user,
+        }).catch((err) => console.error(err));
+
+        req.session.invitationToken = null;
+      }
+
       let redirectUrlAfterLogin;
 
       if (req.user && !req.user.defaultTeamSlug) {

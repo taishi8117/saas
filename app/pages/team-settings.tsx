@@ -1,9 +1,8 @@
 import Avatar from '@material-ui/core/Avatar';
 import Button from '@material-ui/core/Button';
-// import Grid from '@material-ui/core/Grid';
 import Hidden from '@material-ui/core/Hidden';
 import TextField from '@material-ui/core/TextField';
-import { observer } from 'mobx-react';
+import { inject, observer } from 'mobx-react';
 import Head from 'next/head';
 import NProgress from 'nprogress';
 import * as React from 'react';
@@ -16,18 +15,16 @@ import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 
 import Layout from '../components/layout';
+import InviteMember from '../components/teams/InviteMember';
 import {
   getSignedRequestForUploadApiMethod,
   uploadFileUsingSignedPutRequestApiMethod,
 } from '../lib/api/team-member';
-import { resizeImage } from '../lib/resizeImage';
+import confirm from '../lib/confirm';
 import notify from '../lib/notify';
+import { resizeImage } from '../lib/resizeImage';
 import { Store } from '../lib/store';
 import withAuth from '../lib/withAuth';
-
-// const styleGrid = {
-//   height: '100%',
-// };
 
 type Props = { isMobile: boolean; store: Store; teamSlug: string };
 
@@ -35,6 +32,7 @@ type State = {
   newName: string;
   newAvatarUrl: string;
   disabled: boolean;
+  inviteMemberOpen: boolean;
 };
 
 class TeamSettings extends React.Component<Props, State> {
@@ -45,6 +43,7 @@ class TeamSettings extends React.Component<Props, State> {
       newName: this.props.store.currentTeam.name,
       newAvatarUrl: this.props.store.currentTeam.avatarUrl,
       disabled: false,
+      inviteMemberOpen: false,
     };
   }
 
@@ -121,7 +120,12 @@ class TeamSettings extends React.Component<Props, State> {
             }}
           />
           <label htmlFor="upload-file">
-            <Button variant="outlined" color="primary" component="span">
+            <Button
+              variant="outlined"
+              color="primary"
+              component="span"
+              disabled={this.state.disabled}
+            >
               Update logo
             </Button>
           </label>
@@ -139,6 +143,15 @@ class TeamSettings extends React.Component<Props, State> {
           <h4 style={{ marginRight: 20, display: 'inline' }}>
             Team Members ( {Array.from(currentTeam.members.values()).length} / 20 )
           </h4>
+          <Button
+            onClick={this.openInviteMember}
+            variant="outlined"
+            color="primary"
+            style={{ float: 'right', marginTop: '-20px' }}
+            disabled={this.state.disabled}
+          >
+            Invite member
+          </Button>
           <p />
           <TableContainer component={Paper}>
             <Table>
@@ -173,13 +186,66 @@ class TeamSettings extends React.Component<Props, State> {
                     <TableCell>
                       {isTeamLeader && m._id !== currentUser._id ? 'Team Member' : 'Team Leader'}
                     </TableCell>
+                    <TableCell>
+                      {isTeamLeader && m._id !== currentUser._id ? (
+                        <i
+                          color="action"
+                          data-id={m._id}
+                          onClick={this.removeMember}
+                          style={{
+                            marginLeft: '20px',
+                            fontSize: '16px',
+                            opacity: 0.6,
+                            cursor: 'pointer',
+                            verticalAlign: 'middle',
+                          }}
+                          className="material-icons"
+                        >
+                          delete
+                        </i>
+                      ) : null}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </TableContainer>
+
           <p />
           <br />
+
+          {Array.from(currentTeam.invitations.values()).length > 0 ? (
+            <React.Fragment>
+              <h4>Invited users</h4>
+              <p />
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Email</TableCell>
+                      <TableCell>Status</TableCell>
+                    </TableRow>
+                  </TableHead>
+
+                  <TableBody>
+                    {Array.from(currentTeam.invitations.values()).map((i) => (
+                      <TableRow key={i._id}>
+                        <TableCell style={{ width: '300px' }}>{i.email}</TableCell>
+                        <TableCell>Sent</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </React.Fragment>
+          ) : null}
+          <p />
+          <br />
+          <InviteMember
+            open={this.state.inviteMemberOpen}
+            onClose={this.handleInviteMemberClose}
+            store={this.props.store}
+          />
           <br />
         </div>
       </Layout>
@@ -216,8 +282,8 @@ class TeamSettings extends React.Component<Props, State> {
     const { store } = this.props;
     const { currentTeam } = store;
 
-    const fileElm = document.getElementById('upload-file') as HTMLFormElement;
-    const file = fileElm.files[0];
+    const fileElement = document.getElementById('upload-file') as HTMLFormElement;
+    const file = fileElement.files[0];
 
     if (file == null) {
       notify('No file selected for upload.');
@@ -232,6 +298,8 @@ class TeamSettings extends React.Component<Props, State> {
 
     const bucket = process.env.BUCKET_FOR_TEAM_LOGOS;
     const prefix = `${currentTeam.slug}`;
+
+    console.log(bucket);
 
     try {
       const responseFromApiServerForUpload = await getSignedRequestForUploadApiMethod({
@@ -253,7 +321,10 @@ class TeamSettings extends React.Component<Props, State> {
         newAvatarUrl: responseFromApiServerForUpload.url,
       });
 
-      await currentTeam.updateTeam({ name: currentTeam.name, avatarUrl: this.state.newAvatarUrl });
+      await currentTeam.updateTeam({
+        name: this.state.newName,
+        avatarUrl: this.state.newAvatarUrl,
+      });
 
       notify('You successfully uploaded new Team logo.');
     } catch (error) {
@@ -263,6 +334,48 @@ class TeamSettings extends React.Component<Props, State> {
       NProgress.done();
     }
   };
+
+  private openInviteMember = async () => {
+    const { currentTeam } = this.props.store;
+    if (!currentTeam) {
+      notify('You have not selected a Team.');
+      return;
+    }
+
+    this.setState({ inviteMemberOpen: true });
+  };
+
+  private handleInviteMemberClose = () => {
+    this.setState({ inviteMemberOpen: false });
+  };
+
+  private removeMember = (event) => {
+    const { currentTeam } = this.props.store;
+    if (!currentTeam) {
+      notify('You have not selected a Team.');
+      return;
+    }
+
+    const userId = event.currentTarget.dataset.id;
+    if (!userId) {
+      notify('Select user.');
+      return;
+    }
+
+    confirm({
+      title: 'Are you sure?',
+      message: '',
+      onAnswer: async (answer) => {
+        if (answer) {
+          try {
+            await currentTeam.removeMember(userId);
+          } catch (error) {
+            notify(error);
+          }
+        }
+      },
+    });
+  };
 }
 
-export default withAuth(observer(TeamSettings));
+export default withAuth(inject('store')(observer(TeamSettings)));

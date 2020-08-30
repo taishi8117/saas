@@ -1,8 +1,8 @@
 import { action, decorate, IObservableArray, observable, runInAction } from 'mobx';
 import { updateTeamApiMethod } from '../api/team-leader';
-
 import { Store } from './index';
 import { User } from './user';
+import { Invitation } from './invitation';
 
 class Team {
   public store: Store;
@@ -15,6 +15,7 @@ class Team {
   public avatarUrl: string;
   public memberIds: IObservableArray<string> = observable([]);
   public members: Map<string, User> = new Map();
+  public invitations: Map<string, Invitation> = new Map();
 
   constructor(params) {
     this._id = params._id;
@@ -31,8 +32,9 @@ class Team {
     }
   }
 
-  public setInitialMembers(users) {
+  public setInitialMembersAndInvitations(users, invitations) {
     this.members.clear();
+    this.invitations.clear();
 
     for (const user of users) {
       if (this.store.currentUser && this.store.currentUser._id === user._id) {
@@ -40,6 +42,10 @@ class Team {
       } else {
         this.members.set(user._id, new User(user));
       }
+    }
+
+    for (const invitation of invitations) {
+      this.invitations.set(invitation._id, new Invitation(invitation));
     }
   }
 
@@ -62,18 +68,32 @@ class Team {
     }
   }
 
-  // public async removeMember(userId: string) {
-  //   try {
-  //   await removeMemberApiMethod({ teamId: this._id, userId });
+  public async inviteMember(email: string) {
+    try {
+      const { newInvitation } = await inviteMemberApiMethod({ teamId: this._id, email });
 
-  //   runInAction(() => {
-  //     this.members.delete(userId);
-  //     this.memberIds.remove(userId);
-  //   });
-  // } catch (error) {
-  //   console.error(error);
-  //   throw error;
-  // }
+      runInAction(() => {
+        this.invitations.set(newInvitation._id, new Invitation(newInvitation));
+      });
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  }
+
+  public async removeMember(userId: string) {
+    try {
+      await removeMemberApiMethod({ teamId: this._id, userId });
+
+      runInAction(() => {
+        this.members.delete(userId);
+        this.memberIds.remove(userId);
+      });
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  }
 }
 
 decorate(Team, {
@@ -82,9 +102,12 @@ decorate(Team, {
   avatarUrl: observable,
   memberIds: observable,
   members: observable,
+  invitations: observable,
 
   setInitialMembers: action,
   updateTeam: action,
+  inviteMember: action,
+  removeMember: action,
 });
 
 export { Team };

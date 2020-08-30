@@ -23,4 +23,33 @@ router.post('/get-user-by-slug', async (req, res, next) => {
   }
 });
 
+router.get('/invitations/accept-and-get-team-by-token', async (req: any, res, next) => {
+  try {
+    const team = await Invitation.getTeamByToken({
+      token: req.query.token,
+    });
+
+    if (req.user) {
+      await Invitation.addUserToTeam({ token: req.query.token, user: req.user });
+    }
+
+    res.json({ team });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/invitations/remove-invitation-if-member-added', async (req: any, res, next) => {
+  try {
+    const team = await Invitation.removeIfMemberAdded({
+      token: req.body.token,
+      userId: req.user.id,
+    });
+
+    res.json({ team });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

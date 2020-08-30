@@ -3,7 +3,7 @@ import { decorate, observable } from 'mobx';
 import { useStaticRendering } from 'mobx-react';
 
 import { getTeamListApiMethod, getTeamMembersApiMethod } from '../api/team-member';
-import { addTeamApiMethod } from '../api/team-leader';
+import { addTeamApiMethod, getTeamInvitationsApiMethod } from '../api/team-leader';
 import { User } from './user';
 import { Team } from './team';
 
@@ -73,7 +73,10 @@ class Store {
         const users =
           team.initialMembers || (await getTeamMembersApiMethod(this.currentTeam._id)).users;
 
-        this.currentTeam.setInitialMembers(users);
+        const invitations =
+          team.initialInvitations ||
+          (await getTeamInvitationsApiMethod(this.currentTeam._id)).invitations;
+        this.currentTeam.setInitialMembersAndInvitations(users, invitations);
 
         break;
       }
