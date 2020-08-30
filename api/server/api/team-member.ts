@@ -4,6 +4,7 @@ import User from '../models/User';
 import { signRequestForUpload } from '../aws-s3';
 import Team from '../models/Team';
 import Invitation from '../models/Invitation';
+import Discussion from '../models/Discussion';
 
 const router = express.Router();
 
@@ -63,7 +64,7 @@ router.post('/user/toggle-theme', async (req, res, next) => {
   }
 });
 
-async function loadTeamData(team, userId) {
+async function loadTeamData(team, userId, body) {
   const initialMembers = await User.getMembersForTeam({
     userId,
     teamId: team._id,
@@ -77,9 +78,39 @@ async function loadTeamData(team, userId) {
     });
   }
 
-  const data: any = { initialMembers, initialInvitations };
+  const initialDiscussions = await loadDiscussionsData(team, userId, body);
+
+  const data: any = { initialMembers, initialInvitations, initialDiscussions };
 
   return data;
+}
+
+async function loadDiscussionsData(team, userId, body) {
+  const { discussionSlug } = body;
+
+  if (!discussionSlug) {
+    return [];
+  }
+
+  const { discussions } = await Discussion.getList({
+    userId,
+    teamId: team._id,
+  });
+
+  for (const discussion of discussions) {
+    if (discussion.slug === discussionSlug) {
+      Object.assign(discussion, {
+        initialPosts: await Post.getList({
+          userId,
+          discussionId: discussion._id,
+        }),
+      });
+
+      break;
+    }
+  }
+
+  return discussions;
 }
 
 router.post('/get-initial-data', async (req, res, next) => {
@@ -93,7 +124,7 @@ router.post('/get-initial-data', async (req, res, next) => {
 
     for (const team of teams) {
       if (team.slug === selectedTeamSlug) {
-        Object.assign(team, await loadTeamData(team, req.user.id));
+        Object.assign(team, await loadTeamData(team, req.user.id, req.body));
         break;
       }
     }
@@ -119,6 +150,67 @@ router.get('/teams/get-members', async (req, res, next) => {
     const users = await User.getMembersForTeam({ userId: req.user.id, teamId: req.query.teamId });
 
     res.json({ users });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/discussions/list', async (req, res, next) => {
+  try {
+    const { teamId } = req.query;
+
+    const { discussions } = await Discussion.getList({
+      userId: req.user.id,
+      teamId,
+    });
+
+    res.json({ discussions });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/discussions/add', async (req, res, next) => {
+  try {
+    const { name, teamId, memberIds = [] } = req.body;
+
+    const discussion = await Discussion.add({
+      userId: req.user.id,
+      name,
+      teamId,
+      memberIds,
+    });
+
+    res.json({ discussion });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/discussions/edit', async (req, res, next) => {
+  try {
+    const { name, id, memberIds = [] } = req.body;
+
+    const updatedDiscussion = await Discussion.edit({
+      userId: req.user.id,
+      name,
+      id,
+      memberIds,
+    });
+
+    res.json({ done: 1 });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/discussions/delete', async (req, res, next) => {
+  try {
+    const { id } = req.body;
+
+    const { teamId } = await Discussion.delete({ userId: req.user.id, id });
+
+    res.json({ done: 1 });
   } catch (err) {
     next(err);
   }
